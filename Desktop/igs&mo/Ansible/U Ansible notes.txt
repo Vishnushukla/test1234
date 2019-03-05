@@ -1,0 +1,343 @@
+Udemy
+vishnu_er@yahoo.com (vishnu_er%40yahoo.com)
+Welcome@3212 
+
+https://www.edureka.co/
+julekhak@gmail.com
+Manyu@1990
+*****************************************************************************************
+state=present (is to check if package is alredy installed if not installed then 
+it will install the package)
+latest = every time you run your playbook it will upgrade to the latest package available
+update_cache = it is to update your repository like apt-get update command to update
+repository with latest package.
+{{}} = ginger syntax - it passes through the ginger engine
+
+Section 0
+#### 1.Introduction
+#### 2.Configuration management and orchestration.
+***************************************************************************************
+
+
+Section: 1
+Preparation
+###3. Environment Setup
+###4
+http://docs.ansible.com/ansible/latest/intro_installation.html
+
+
+***************************************************************************************
+Sction:2
+Foundation
+
+###5 Inventory pt1
+Host configuration file /etc/ansible/hosts
+ansible --list-hosts all 
+
+###7. Host Selection
+groups can be call like as below
+ansible --list-hosts webserver
+ansible --list-hosts loadbalancer
+ansible --list-hosts database
+#for multiple host you can select as below
+ansible --list-hosts database:webserver
+#if you want to select a single instance from a group you can use as below
+ansible --list-hosts webserver[0]
+#print everything except the one group
+ansible --list-hosts \!control
+ansible all -m command -a "uptime"
+ansible all -m ping -u bruce
+ansible all -m ping -u bruce --sudo
+ansible all -m ping -u bruce --sudo --sudo-user batman
+ansible all -m ping -u bruce -b
+ansible all -m ping -u bruce -b --become-user batman
+ansible webservers -m ping
+ansible -a "df -h" all
+ansible -m command -a "df -h" all
+
+
+###8 Tasks
+&&& In ansible any task is made up of 2 parts module and arguments of that modules.
+Ex : ansible -m command -a ""hostname" all
+
+###9 Plays
+###10 Playbook execution
+
+***************************************************************************************
+Section:3
+Playbooks
+
+### 11.Playbooks introduction
+### 12.Packages: become
+
+*****************
+---
+ - hosts: all
+   remote_user: root
+   become: yes
+   tasks:
+        - name: install apache
+          yum: name=httpd state=present
+		  
+		  ---
+ - hosts: all
+   tasks:
+        - name: install apache
+          yum: name=httpd state=present
+
+##YML playbook to install multiple packages
+---
+ - hosts: all
+   tasks:
+     - name: install apache
+       yum: name={{item}} state=installed
+       with_items:
+        - httpd
+		
+        - wget
+
+###To download or wget in Linux use shell as below
+---
+ - hosts: all
+   tasks:
+    - name: Download file
+      shell: wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	  
+### To download the package and install to multiple host and run multiple command
+---
+- hosts: all
+  tasks:
+    - name: Download file
+      command: wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+    - name: install packages
+      yum: name={{ item.name }} state=present
+      with_items:
+          - { name: 'epel-release-latest-7.noarch.rpm' }
+          - { name: 'nginx' }
+		  
+**********************
+### 13. Packages: become 
+To provide root priv
+become: yes
+
+### 14.
+To install multiple packages in local and node host.
+************
+---
+- hosts: all
+  tasks:
+     - name: install webserver component
+       yum: name={{item}} state=present
+       with_items:
+        - httpd
+        - python-pip
+        - python-virtualenv
+***************************
+15. Services: service
+Installing multiple packages and starting the services as well
+*************
+---
+ - hosts: all
+   tasks:
+     - name: install webserver component
+       yum: name={{item}} state=present
+       with_items:
+        - httpd
+        - python-pip
+        - python-virtualenv
+        - vsftpd
+     - name: ensure service started
+       service: name={{item}} state=started
+       with_items:
+        - sshd
+        - vsftpd
+****************
+### 16. Support Playbook1 - Stack Restarted
+We can create the stack to stop and start the loadbalancer, webserver and database server.
+EXample: 
+---
+- hosts: localhost
+  tasks:
+   - service: name=nginx state=stopped
+
+
+- hosts: localhost
+  tasks:
+   - service: name=nginx state=started
+
+   
+### 17. Services: httpd_module, handlers, notify
+******************
+---
+- hosts: localhost
+  tasks:
+   - name: install web components
+     yum: name={{item}} state=present
+     with_items:
+      - httpd
+      - python-pip
+      - python-virtualenv
+
+   - name: ensure httpd started
+     service: name=httpd state=started
+
+  handlers:
+   - name: restart httpd
+     service: name=httpd state=restarted
+
+Notify : if there is a change in apache then notify will triggerd to handlers to 
+restart the services 
+*********************************************************************************
+install curl
+which curl
+curl lb01
+
+************************************************************************Pending
+###18. Files: copy
+Below is the script to copy any command from master server to node servers.
+---
+- name: copy demo app source
+  copy: src=demo/app/ dest=/var/www/demo mode=0755
+  notify: restart apache2
+
+- name: copy apache virtual host config
+  copy: src=demo/demo.conf dest=/etc/apache2/sites-available mode=0755
+  notify: restart apache2
+
+**************************************************************************Pending
+###19. Application Modules: pip
+Below is the script to use the pip module.
+
+-name: setup pythonvirtualenv
+ pip: requirements=/var/www/demo/requirements.txt virtual env=/var/www/demo/.venv
+ notify: restart apache2
+
+
+*************************************************************************Pending
+###20. Files: file
+Below is the script to use file module
+
+-name: de-activate default apache site
+ file: path=/etc/apache2/sites-enabled/000-default.conf state=absent
+ notify: restart apache2
+
+-name: activate demo apache site
+ file: src=/etc/apache2/sites-enabled/demo.conf state=link
+ notify: restart apache2
+
+**************************************************************************Pending
+###21. Files: Template
+First create any file like below then call it as a template in your Ansible playbook
+
+**************************************
+create a nginx.conf file
+upstream demo { 
+{% for server in groups.webserver %}
+  server {{ server }};
+{% endfor %}
+} 
+
+server { 
+  listen 80:
+
+  location / {
+    proxy_pass http://demo;
+  }
+}
+****************************************
+now call it in ansible playbook
+
+-name: configure Nginx site
+ template: src=template?nginx.conf.j2 dest=/etc/nginx/sites-available/demo mode=0644
+ notify: restart nginx
+
+ -name: de-activate default nginx site
+  file: path=/etc/nginx/sites-enabled state=absent
+  notify: restart nginx
+
+ -name: activate deo nginx site
+  file: src=/etc/nginx/sites-available/demo dest=/etc/nginx/sites-enabled/demo state=link
+  Notify: restart nginx
+  
+
+
+Handlers:
+ -name: restart nginx
+  service: name=nginx state=restarted 
+
+**************************************************************************************
+###22. Lineinfile
+below is the file which apache uses to run the python application
+********
+activate_this='/var/www/demo/.venv/bin/activate_this.py'
+execfile(activate_this, dict(__file__=activate_this))
+
+import os
+os.environ['DATABASE_URI"] = 'mysql://demo:demo@db01/demo'
+
+import sys
+sys.path.insert(0, '/var/www/demo')
+
+from demo import app as application
+***************************************
+database.yml
+---
+hosts: database
+become: true
+tasks:
+  - name: install mysql-server
+    apt: name=mysql-server state=present update_cache=yes
+  
+  - name: ensure mysql started
+    service: name=mysql state=started enabled=yes
+
+  - name: ensure mysql listening on all ports
+    lineinfile: dest=/etc/mysql/my.cnf regexp=^bind-address
+                line="bind-address = 0.0.0.0"
+    notify: restart mysql
+  handlers: 
+  - name: restart mysql
+    service: name-mysql state=restarted
+
+********************************************************************************
+###23. Application Modules: mysql_db. mysql_user
+
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - name: install tools
+      apt: name={{item}} state=present update_cache=yes
+      with_items:
+        - python-mysqldb
+
+    - name: install mysql-server
+      apt: name=mysql-server state=present update_cache=yes
+
+
+    - name: ensure mysql started
+      service: name=mysql state=started enabled=yes
+
+    - name: ensure mysql listening on all ports
+      lineinfile: dest=/etc/mysql/my.cnf regexp=^bind-address
+      notify: restart mysql
+
+  handlers:
+    - name: restart mysql
+      service: name=mysql state=restarted
+
+#############################################################################
+for Kevin task
+---
+- name: copy and start the service
+  hosts: web
+  tasks:
+    - name: copy
+      template: src=/etc/apache2/apache2.conf dest=/etc/apache2/ mode=0644
+      notify: restart apache2
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
+##############################################################################:
+

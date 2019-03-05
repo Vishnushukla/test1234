@@ -1,0 +1,250 @@
+#What Ansible is 
+An automation language that can describe an IT application infrastructure
+in Ansible Playbooks.
+An automation engine that runs Ansible Playbooks
+
+#Ansible tower
+Ansible Tower is an enterprise framework for controlling, securing
+and managing your Ansible automation with a UI and RESTful API 
+
+#Ansible is simple
+1.Human readable automation
+2.No special coding skills needed
+3.Tasks executed in order
+4.Get productive Quickly
+
+#Ansible is powerful
+1.Application deployment
+2.Configuration management
+3.Workflow orchestration
+4.Orchestrate the application lifecycle
+
+#Ansible is Agentless
+1.Agentless architecture
+2.Uses OpesSSH & WinRM
+3.No agents to exploit or update
+4.More efficient & more secure
+
+#Ansible is cross platform
+Agentless support for all major OS variants, physical, virtual, cloud
+and networks.
+
+#Ansible works with existing toolkits
+Homogenize existing environments by leveraging current toolsets and
+update mechanisms.
+
+#Ansibible comes bundled with over 450 Modules
+1.Cloud
+2.Containers
+3.Database
+4.Files
+5.Messaging
+6.Monitoring
+7.Network
+8.Notifications
+9.Packaging
+10.Source Control
+11.System
+12.Testing
+13.Utilities
+14.infrastructure
+
+#Community
+The most popular open-source automation community on GitHub
+over 1,20 users on IRC channel. Over 450 modules shipped with Ansible.
+
+#The Complete Package
+1.Provisioning
+2.Configuration Management
+3.Application Deployment
+4.Multi-Tier orchestration
+
+#Installing Ansible
+1.The most common and preferred way of installation
+$pip install ansible
+
+2.Install the epel-release RPM if needed on Linux, RHEL, CentOS
+$sudo yum install ansible
+
+3.You will need the PPA repo configured
+$sudo apt-get install ansible
+
+#####################################################################
+How Ansible works    YAML(yet another markup language)
+
+Frequetly used modules in Ansible
+1.apt/yum
+2.copy
+3.file
+4.get_url
+5.git
+6.ping
+7.debug
+8.service
+9.synchronize
+10.template
+11.uri
+12.user
+13.wait_for
+14.assert
+
+Modules: Run commands
+Command : Takes the command and executes it. the most secure and
+predictable.
+
+shell: executes through a shell like /bin/sh
+so you can use pipes etc.
+
+Script: Runs a local script on a remote node after transferring it.
+
+Raw: Execute a command without going through the ansible module subsystem
+
+#####################################################################
+AD-HOC Commands
+
+#Check all my inventory hosts are ready to be 
+#managed by Ansible
+$ansible all -m ping
+
+#run the uptime command on all hosts in the 
+#web group
+$ansible web -m command -a "uptime"
+
+#collect and display the discovered for the 
+#localhost
+$ansible localhost -m setup
+
+Inventory
+Inventory is a collection of hosts(nodes) against which ansible can 
+work with.
+*Hosts		*Inventory-specifiec data
+*Groups sources	*Static or dynamic
+
+Static inventory example
+[control]
+control ansible_host=10.42.0.2
+
+[web]
+node-1 ansible_host=10.42.0.100
+node-2 ansible_host=10.42.0.7
+node3 ansible_host=10.42.0.8
+
+[haproxy]
+haproxy ansible_host=10.42.0.100
+
+[all:vars]
+ansible_user=vagrant
+ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key
+
+Hosts file
+[webserver]
+172.31.41.142
+172.31.34.149
+172.31.44.133
+
+-i inventory flag
+-m module
+-u user
+-a arguments
+*******************************************************************************
+Introduction to playbook
+Variable precedence
+1.Extra vars
+2.Task vars (only for the task)
+3.Block vars (only for tasks in the block)
+4.Role and include vars
+5.Play vars_files
+6.Play vars_prompt
+7.Play vars
+8.Set_facts
+9.Registered vars
+10.Hosts facts
+11.Playbook host)vars
+12.Playbook group_vars
+13.Inventory host_vars
+14.Inventory group_vars
+15.Inventory vars
+16.Role Defaults
+
+
+Example tasks in a play
+task:
+-name: add cache dir
+ file:
+   path: /opt/cache
+   state: directory
+
+-name: install nginx
+ yum:
+   name: nginx
+   state: latest
+   
+-name: restart nginx
+ service:
+   name: nginx
+   state: restarted
+
+Playbook example
+
+-name: install and start apache
+ hosts: web
+ vars:
+   http_port: 80
+   max_clients: 200
+ remote_user: root
+
+ tasks:
+-name: install httpd
+ yum: pkg=http state=latest
+-name: write the apache config file
+ template: src=/srv/httpd.j2 dest=/etc/httpd.conf
+-name: start httpd
+ service: name=httpd state=started
+
+
+
+-name: install and start apache
+ hosts: webservers
+ remote_user: vagrant
+ become: yes
+
+ tasks: 
+-name: install epel repo
+ yum: name=epel-release state=present
+
+-name: install python bindings for SELinux
+ yum: name={{item}} state=present
+ with_items:
+ - libselinux-python
+ - libsemanage-python
+
+-name: test to see if SeLinux is running
+ command: getenforce
+ register: sestatus
+ changed_when: false
+
+-name: install apache
+ yum: name=httpd state=present
+
+-name: start apache
+ service: name=httpd state=started enable=yes
+
+
+**************************************************************************************
+Introduction to roles
+
+Roles are a packages of closely related Ansible content that can be shared more easily
+than plays alone.
+
+
+*************************************************************************************
+Creating the roles structure with ansible
+mkdir roles
+cd roles/
+ansible-galaxy init --help
+ansible-galaxy init apache
+ls apache/
+
+*************************************************************************************
+Breaking an existing playbook into a role (and demonstration)
+
